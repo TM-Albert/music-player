@@ -36,8 +36,6 @@ class MusicPlayer:
         self.inner_frame = tk.Frame(self.canvas, bg="#FDF6F6")
         self.canvas.create_window((0, 0), window=self.inner_frame, anchor="nw")
 
-        self.load_songs()
-
         settingsframe = tk.Frame(self.root, bg="#002C54", bd=5)
         settingsframe.place(x=0, y=445, width=720, height=110)
 
@@ -51,6 +49,8 @@ class MusicPlayer:
 
         self.play_button = tk.Button(settingsframe, image=self.play_icon, bg="#002C54", bd=0, command=self.toggle_play_stop)
         self.play_button.place(relx=0.5, rely=0.45, anchor=tk.CENTER)
+
+        self.load_songs()
 
         skip_forward_img = Image.open("./media/skip_forward.png")  
         skip_forward_img = skip_forward_img.resize((50, 50), Image.Resampling.LANCZOS)
@@ -74,7 +74,7 @@ class MusicPlayer:
         self.unmute_img = self.unmute_img.resize((50, 50), Image.Resampling.LANCZOS)
         self.unmute_icon = ImageTk.PhotoImage(self.unmute_img)
 
-        self.mute_button  = tk.Button(settingsframe, image=self.mute_icon, bg="#002C54", bd=0, command=self.mute_audio)
+        self.mute_button = tk.Button(settingsframe, image=self.mute_icon, bg="#002C54", bd=0, command=self.mute_audio)
         self.mute_button.place(relx=0.73, rely=0.45, anchor=tk.CENTER)
 
         self.volume = tk.DoubleVar()
@@ -85,42 +85,21 @@ class MusicPlayer:
         self.inner_frame.update_idletasks()
         self.canvas.config(scrollregion=self.canvas.bbox("all"))
 
-    def play_song(self):
-        try:
-            selected_song = self.songs[self.playlistbox.curselection()[0]]
-            pygame.mixer.music.load(selected_song)
-            pygame.mixer.music.play()
-            self.play_button.config(image=self.stop_icon)
-        except IndexError:
-            messagebox.showerror("Error", "No song selected")
-
-
-    def toggle_play_stop(self):
-        if pygame.mixer.music.get_busy():
-            pygame.mixer.music.stop()
-            self.play_button.config(image=self.play_icon)  # Change to play icon
-        else:
-            self.play_song()
-
 
     def load_songs(self):
         self.songs = []
         for root, _, files in os.walk("music/"):
             for file in files:
                 if file.endswith(".mp3"):
-                    self.songs.append(os.path.join(root, file))
-        
-        for song in self.songs:
-                song_name = os.path.basename(song).replace('.mp3', '')
-                self.add_song_item(song_name)
-    
+                    self.add_song_item(file, os.path.join(root, file))    
 
-    def add_song_item(self, song_name):
+    def add_song_item(self, song_name, filepath):
         song_frame = tk.Frame(self.inner_frame, bg="white", bd=2, relief=tk.GROOVE)
         song_frame.pack(fill=tk.X, padx=5, pady=5)
 
         rectangle = tk.Label(song_frame, bg="#C5001A", width=4, height=2)
         rectangle.pack(side=tk.LEFT, padx=5, pady=5)
+        rectangle.bind("<Button-1>", self.play_song(filepath))
 
         song_label = tk.Label(song_frame, text=song_name, font=("times new roman", 11, "bold"), bg="white", fg="navyblue")
         song_label.pack(side=tk.LEFT, padx=5)
@@ -156,6 +135,32 @@ class MusicPlayer:
     def set_volume(self, val):
         volume = float(val)
         pygame.mixer.music.set_volume(volume)
+
+
+    def play_song(self, song_path=None):
+        try:
+            if song_path is None:
+                if self.songs:
+                    song_path = self.songs[0]
+                    print(self.songs    )
+                else:
+                    messagebox.showerror("Error", "No songs in the playlist")
+                    return
+                
+            pygame.mixer.music.load(song_path)
+            pygame.mixer.music.play()
+            self.play_button.config(image=self.stop_icon)
+        except IndexError:
+            messagebox.showerror("Error", "No song selected")
+
+
+    def toggle_play_stop(self):
+        if pygame.mixer.music.get_busy():
+            pygame.mixer.music.stop()
+            self.play_button.config(image=self.play_icon)  # Change to play icon
+        else:
+            self.play_song()
+
 
 
 if __name__ == "__main__":
